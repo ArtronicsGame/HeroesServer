@@ -1,2 +1,2 @@
 # HeroesServer
-One of the coolest Iranian multiplayer game server sides consisting UDP and TCP Communications.
+The server side of one of the coolest Iranian multiplayer games, consisting of UDP and TCP communications.

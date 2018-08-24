@@ -1,0 +1,31 @@
+{
+  "name": "heroes_main",
+  "version": "0.1.0",
+  "description": "One of coolest Iranian multiplayer game server side consist UDP and TCP Communication",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mastermobin/HeroesServer.git"
+  },
+  "keywords": [
+    "#OnlineGame",
+    "#Multiplayer",
+    "#Strategy",
+    "#Game",
+    "#Artronic"
+  ],
+  "author": "Mobin Vahdati, Hojat Sargolzehi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mastermobin/HeroesServer/issues"
+  },
+  "homepage": "https://github.com/mastermobin/HeroesServer#readme",
+  "dependencies": {
+    "dgram": "^1.0.1",
+    "nodemailer": "^4.6.8"
+  }
+}

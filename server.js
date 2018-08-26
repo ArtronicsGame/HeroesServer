@@ -1,5 +1,5 @@
 const dgram = require('dgram');
-const nodemailer = require('nodemailiner');
+//const nodemailer = require('nodemailer');
 const server = dgram.createSocket('udp4');
 const SEVER_PORT = 8008;
 const SERVER_IP = '185.55.226.196';
@@ -262,7 +262,7 @@ function check_data_db(type, info, callback) {
     });
 }
 
-function send_email(email) {
+/*function send_email(email) {
 
     nodemailer.createTestAccount((err, account) => {
         
@@ -293,3 +293,4 @@ function send_email(email) {
         });
     });
 }
+*/

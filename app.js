@@ -1,24 +1,25 @@
 const dgram = require('dgram');
-const User = require('./User.js');
-const Match = require('./Match.js');
-const MatchHub = require('./MatchHub.js');
-const Clan = require('./Clan.js');
-const HeroProperty = require('./HeroProperty.js');
-const ItemProperty = require('./ItemProperty.js');
-const Message = require('./Message.js');
+const User = require('./Models/User.js');
+const Match = require('./Models/Match.js');
+
+const Clan = require('./Models/Clan.js');
+const HeroProperty = require('./Models/HeroProperty.js');
+const ItemProperty = require('./Models/ItemProperty.js');
+const Message = require('./Models/Message.js');
 const MongoDB = require('./MongoDB.js');
+const Player = require('./Controllers/PlayerController');
+const _ = require('underscore');
 //const nodemailer = require('nodemailer');
 
-const server = dgram.createSocket('udp4');
-const SEVER_PORT = 8008;
-const SERVER_IP = '185.55.226.196';
+global.server = dgram.createSocket('udp4');
+global.SERVER_PORT = 8008;
+global.SERVER_IP = '185.55.226.137';
 
-server.bind({port : SEVER_PORT, address : SERVER_IP});
+server.bind({port : SERVER_PORT, address : SERVER_IP});
 
 server.on('listening', function(){
   const address = server.address();
   console.log("server listening: " + address.address + ":" + address.port);
-  const mongoDB = new MongoDB();
 });
 
 
@@ -38,56 +39,11 @@ server.on('message', function(msg, rinfo) {
     var request = JSON.parse(message);
     console.log(request);
 
+    eval(request["_type"])(request["_info"], rinfo);
+
     // decode message
-    var info = request["_info"];
-    switch (request["_type"]) {
-        // case "get_ready" :
-        //     var newUser = {id : (nextID++).toString(), ip : CLIENT_IP, port : CLIENT_PORT};
-        //     users.push(newUser);
-        //     send_response("id_callback", { _id : newUser.id}, CLIENT_IP, CLIENT_PORT);
-        //     break;
-
-        case "update_pos" :
-            users.forEach(user => {
-                if(user.id != info["_id"]) 
-                    send_response("update_pos", info, user.ip, user.port);
-            });
-            break;
-
-        case "new_match" :
-            var userID = info["_id"];
-            var userHero = info["_user_hero"];
-            var added = false;
-            loby.forEach(matchHub => {
-                matchHub.is_user_addable(userHero, function(isAddable) {
-                    if (isAddable) {
-                        matcheHub.add_user(userID, userHero, CLIENT_IP, CLIENT_PORT);
-                        if (matchHub.is_completed()) { //startMatch
-                            loby.splice(matchHub);
-                            matches.push(matchHub);
-                            start_match(matchHub);
-                        }
-                        added = true;
-                    }
-                });
-            });
-            if(added == false) {
-                var matchHub = new MatchHub(userID, userHero, CLIENT_IP, CLIENT_PORT);
-                loby.push(matchHub)
-            }
-            break;
-
-        case "new_player" :
-            var username = info["_username"];
-            var email = info["_email"];
-            console.log("New Player ->" + "\tUsername: " + username + "\tEmail: " + email);
-            var newUser = new User(nextID++);
-            mongoDB.process("register", info, function(register_state) {
-                send_response("register_state", {state : register_state}, CLIENT_IP, CLIENT_PORT);
-                if (register_state == "register_ok")
-                    send_response("id_callback", {_id : newUser.id}, CLIENT_IP, CLIENT_PORT);
-            });
-            break;
+    
+    /*switch (request["_type"]) {
 
         case "add_clan" :
             var name = info["_name"];
@@ -109,22 +65,14 @@ server.on('message', function(msg, rinfo) {
                 send_data("search_clan", search_clan_result, CLIENT_IP, CLIENT_PORT);
             })
             break;
-    }
+    }*/
 });
 
-function start_match(matchHub) {
-    matchHub.get_users_data( function (users) {
-        users.forEach(user => {
-            users.forEach(otherUser => {
-                //if(user._id != otherUser._id)
-                send_response("update_pos", user, otherUser._ip, otherUser._port);
-            });
-        });
-    });
-}
 
 // send data to client
-function send_response(type, info, CLIENT_IP, CLIENT_PORT) {
+global.send_response = function (type, info, rinfo) {
+    var CLIENT_IP = rinfo.address;
+    var CLIENT_PORT = rinfo.port;
     console.log("send message to " + CLIENT_IP + ":" + CLIENT_PORT);
     console.log(type + " response: " + info);
     var msg = {_type : type, _info : info};
@@ -136,37 +84,3 @@ function send_response(type, info, CLIENT_IP, CLIENT_PORT) {
         }
     });
 }
-
-
-/*function send_email(email) {
-
-    nodemailer.createTestAccount((err, account) => {
-        
-        let transporter = nodemailer.createTransport({
-            host: 'smtp.ethereal.email',
-            port: 587,
-            secure: false, // true for 465, false for other ports
-            auth: {
-                user: account.user, // generated ethereal user
-                pass: account.pass // generated ethereal password
-            }
-        });
-
-        
-        let mailOptions = {
-            from: 'Admin@ArtronicGameStudio.com', // sender address
-            to: email,
-            subject: 'Register Email',
-            text: "Artronic Game Studio Present \n You Are Successfully Registered!"
-        };
-
-        
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-                return console.log(error);
-            }
-            console.log("ٍEmail Sent!");
-        });
-    });
-}
-*/

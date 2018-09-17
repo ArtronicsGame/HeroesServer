@@ -1,10 +1,10 @@
-const Match = require('./Match.js');
+const Match = require('./Models/Match.js');
 class MatchHub {
-    constructor(userID, userHero, userIP, userPort) {
+    constructor(info, rinfo) {
         this._users = [];
         this._heroes = [];
-        this._users.push({_id : userID, _hero : userHero, _ip : userIP, _port : userPort});
-        this._hero.push(userHero);
+        this._users.push({_info : info, _rinfo : rinfo});
+        this._hero.push(info["_hero"]);
     }
 
     is_user_addable(userHero, callback) {
@@ -14,8 +14,12 @@ class MatchHub {
             callback(false);
     }
 
-    add_user(userID, userHero, userIP, userPort) {
-        this._users.push({_id : userID, _hero : userHero, _ip : userIP, _port : userPort});
+    add_user(info, rinfo) {
+        this._users.forEach(user => { 
+            global.send_response("addUserToMatch", info, user["_rinfo"]); // send user data to another players
+            global.send_response("addUserToMatch", user["_info"], rinfo); // sent another players data to user
+        });
+        this._users.push({_info : info, _rinfo : rinfo});
         this._hero.push(userHero);
     }
 
@@ -25,6 +29,10 @@ class MatchHub {
 
     get_users_data(callback) {
         callback(this._users);
+    }
+
+    start_match() {
+        //TODO
     }
     
 }

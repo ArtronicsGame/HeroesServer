@@ -1,15 +1,9 @@
 const dgram = require('dgram');
-const User = require('./Models/User.js');
-const Match = require('./Models/Match.js');
-
-const Clan = require('./Models/Clan.js');
-const HeroProperty = require('./Models/HeroProperty.js');
-const ItemProperty = require('./Models/ItemProperty.js');
-const Message = require('./Models/Message.js');
 const MongoDB = require('./MongoDB.js');
 const Player = require('./Controllers/PlayerController');
+const Clan = require('./Controllers/ClanController');
+const Match = require('./Controllers/MatchController');
 const _ = require('underscore');
-//const nodemailer = require('nodemailer');
 
 global.server = dgram.createSocket('udp4');
 global.SERVER_PORT = 8008;
@@ -34,42 +28,14 @@ server.on('message', function(msg, rinfo) {
     var message = msg.toString("utf-8", 8);
     message = message.substring(0, message.lastIndexOf('}') + 1);
     console.log("message recived from " + rinfo.address + ":" + rinfo.port);
-    var CLIENT_IP = rinfo.address;
-    var CLIENT_PORT = rinfo.port;
     var request = JSON.parse(message);
     console.log(request);
 
     eval(request["_type"])(request["_info"], rinfo);
-
-    // decode message
-    
-    /*switch (request["_type"]) {
-
-        case "add_clan" :
-            var name = info["_name"];
-            var leader = info["_leader"];
-            console.log("Add Clan Name: " + name + " Leader: " + leader);
-
-            //chack data to be correct
-            mongoDB.process("add_clan", info, function (add_clan_state) {
-                send_response("add_clan", add_clan_state, CLIENT_IP, CLIENT_PORT);
-            })
-            break;
-
-        case "search_clan" :
-            var search = info["_name"];
-            console.log("search for clan contians letter { " + search + " }");
-
-            //search data in db
-            mongoDB.process("search_clan", info, function (search_clan_result) {
-                send_data("search_clan", search_clan_result, CLIENT_IP, CLIENT_PORT);
-            })
-            break;
-    }*/
 });
 
 
-// send data to client
+// send response to client
 global.send_response = function (type, info, rinfo) {
     var CLIENT_IP = rinfo.address;
     var CLIENT_PORT = rinfo.port;

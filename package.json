@@ -27,6 +27,7 @@
   "dependencies": {
     "dgram": "^1.0.1",
     "nodemailer": "^4.6.8",
-    "sendmail": "^1.4.1"
+    "sendmail": "^1.4.1",
+    "underscore": "^1.9.1"
   }
 }

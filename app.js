@@ -10,7 +10,6 @@ var io = require('socket.io')(http);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-
 const MatchHub = require('./MatchHub.js');
 const PlayerController = require('./Controllers/PlayerController.js');
 const ClanController = require('./Controllers/ClanController.js');

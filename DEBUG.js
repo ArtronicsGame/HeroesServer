@@ -65,6 +65,14 @@ var reportState = {
             Loby: false,
             Index: false,
             Queue: false
+        },
+        Live: {
+            Connect: {
+                Id: false
+            },
+            Disconnect: {
+                Id: false
+            }
         }
     },
     Player: {

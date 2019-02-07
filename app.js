@@ -2,11 +2,16 @@
 const dgram = require('dgram');
 const net = require('net');
 const express = require('express');
+const path = require('path');
 var app = express(),
     bodyParser = require('body-parser');
+var http = require('http').Server(app);
+var io = require('socket.io')(http);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+
+const MatchHub = require('./MatchHub.js');
 const PlayerController = require('./Controllers/PlayerController.js');
 const ClanController = require('./Controllers/ClanController.js');
 // const MatchController = require('./Controllers/MatchController.js');
@@ -14,13 +19,15 @@ const Utils = require('./Utils.js');
 const DEBUG = require('./DEBUG.js');
 
 //#region Global Variables -----------------------------------------------------
+global.REFRESH_RATE = 500;
 global.UDPSERVER_PORT = 8008;
 global.TCPSERVER_PORT = 6624;
 global.HTTP_PORT = 254;
 global.SERVER_IP = '193.176.243.42';
 global.UDPServer = dgram.createSocket('udp4');
 global.MongoDB = require('./MongoDB.js');
-global.OnlinePlayers = {}
+global.OnlinePlayers = {};
+global.Matches = new Array(100000);
 //#endregion
 
 //#region HTTP Server ----------------------------------------------------------
@@ -52,7 +59,30 @@ app.get('/getUsers', function (req, res) {
     });
 });
 
-app.listen(HTTP_PORT);
+var htmlPath = path.join(__dirname, 'LiveViewer');
+
+app.use('/viewer', express.static(htmlPath));
+
+io.on('connection', function (socket) {
+    DEBUG.d({ Id: socket.id }, 'Match', 'Live', 'Connect');
+
+    var matchHub = new MatchHub("usersId", 0);
+    matchHub.startMatch();
+
+    var interval = setInterval(function () {
+        socket.emit('frame', matchHub.render());
+    }, REFRESH_RATE);
+
+    socket.on('disconnect', function () {
+        DEBUG.d({ Id: socket.id }, 'Match', 'Live', 'Disconnect');
+        clearInterval(interval);
+        matchHub.destroy();
+    });
+
+});
+
+
+http.listen(process.env.PORT || HTTP_PORT);
 //#endregion
 
 //#region TCP Server -----------------------------------------------------------

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const Match = require('./Models/Match.js');
+const MapManager = require('./MapManager.js');
 const { createCanvas } = require('canvas');
 
 var _collisions = require('./libs/Collisions/Collisions.js');
@@ -11,7 +12,7 @@ var Circle = _interopRequireDefault(_circle);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 const MATCH_TIME = 2 * 60 * 1000; // Minute * Seconds Per Minute * Milliseconds Per Second
-const UPDATE_INTERVAL = 30;
+const UPDATE_INTERVAL = 100;
 
 class MatchHub {
     constructor(usersIds, matchId) {
@@ -28,52 +29,27 @@ class MatchHub {
 
         //#region Read Map -------------------------------
         this.hub.system = new Collisions.default();
-        var content = fs.readFileSync(`./Maps/TestMap.hm`, "utf8");
-        var lines = content.split("\n");
 
-        var items = [];
-        for (var k = 0; k < lines.length; k++) {
-            if (lines[k].trim() == "")
-                return;
-            var raw = lines[k].split(";");
-            var shapeType = raw[0];
-            var shapeData = raw[1];
-
-            var x, y;
-            switch (shapeType) {
-                case "0": // Circle
-                    let r;
-                    var rawCoord = shapeData.split(",");
-                    x = parseInt(rawCoord[0]), y = parseInt(rawCoord[1]), r = parseInt(rawCoord[2]);
-                    items.push(new Circle.default(x, y, r));
-                    break;
-                case "1": // Polygon
-                    var rawCoord = shapeData.split(",");
-                    x = rawCoord[0], y = rawCoord[1];
-                    let coords = [];
-                    for (var i = 1; i < rawCoord.length; i += 2) {
-                        coords.push([rawCoord[i], rawCoord[i + 1]]);
-                    }
-                    this.hub.system.createPolygon(x, y, coords);
-                    break;
-            }
-        }
-
+        var items = MapManager.getMap("TestMap");
         for (var i = 0; i < items.length; i++)
             this.hub.system.insert(items[i]);
+
+        this.hub.c = items[0];
+        this.hub.c1 = items[2];
         //#endregion
 
     }
 
     startMatch() {
-        this.render();
-        setTimeout(this.endMatch, MATCH_TIME, this.hub);
-        setInterval(this.update, UPDATE_INTERVAL, this.hub);
+        this.hub.timeOut = setTimeout(this.endMatch, MATCH_TIME, this.hub);
+        this.hub.interval = setInterval(this.update, UPDATE_INTERVAL, this.hub);
     }
 
     //Update Server Driven Object Like Bullets, ...
-    update(sys) {
-
+    update(hub) {
+        hub.c.x++;
+        hub.c1.x += 2;
+        hub.c1.y++;
     }
 
     onMessage() {
@@ -82,6 +58,11 @@ class MatchHub {
 
     endMatch() {
 
+    }
+
+    destroy() {
+        clearInterval(this.hub.interval);
+        clearTimeout(this.hub.timeOut);
     }
 
     render() {
@@ -98,9 +79,8 @@ class MatchHub {
         ctx.stroke();
         ctx.fill();
 
-        console.log('<img src="' + canvas.toDataURL() + '" />');
+        return canvas.toDataURL('image/jpeg', 0.01);
     }
-
 }
 
 module.exports = MatchHub;

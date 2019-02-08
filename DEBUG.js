@@ -54,12 +54,12 @@ var reportState = {
     },
     Match: {
         New: {
-            Loby: false,
-            Queues: false
+            Loby: true,
+            Queues: true
         },
         QueueRefresh: {
-            Index: false,
-            Queue: false
+            Index: true,
+            Queue: true
         },
         LobySearch: {
             Loby: false,

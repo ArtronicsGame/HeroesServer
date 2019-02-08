@@ -1,154 +1,227 @@
 const Match = module.exports = {};
-const MatchHub = require('../MatchHub.js');
+// const MatchHub = require('../MatchHub.js');
 const Utils = require("../Utils.js");
 const DEBUG = require('../DEBUG.js')
 
-var timeOut = 5000;
-var loby = [];
+const HEROES = ["IceMan", "BlackHole", "Healer", "Tank", "Wizard", "Cloner", "Invoker", "ClockMan"];
+const HEROES_INDEX = { IceMan: 0, BlackHole: 1, Healer: 2, Tank: 3, Wizard: 4, Cloner: 5, Invoker: 6, ClockMan: 7 };
+const MAX_DEPTH = 6;
+const MATCH_SIZE = 4;
 
-var queues = [
-    { time: 10000, users: [], trophiesDiff: 200 },
-    { time: 20000, users: [], trophiesDiff: 400 },
-    { time: 30000, users: [], trophiesDiff: 800 },
-    { time: 40000, users: [], trophiesDiff: 1000000 }
-];
+var user = {};
 
-searchLoby(0);
-for (var i = 0; i < queues.length; i++)
-    changeQueue(i);
-addToLoby(0);
-
-
-function addToLoby(i) {
-    var user;
-    if (i == 0)
-        user = { _id: 0, trophies: 100, hero: 'tank', time: new Date().getTime(), occupied: false };
-    else if (i == 1)
-        user = { _id: 1, trophies: 150, hero: 'healer', time: new Date().getTime(), occupied: false };
-    else if (i == 2)
-        user = { _id: 2, trophies: 200, hero: 'blackhole', time: new Date().getTime(), occupied: false };
-    else if (i == 3)
-        user = { _id: 3, trophies: 100, hero: 'clockman', time: new Date().getTime(), occupied: false };
-    loby.push(user);
-    queues[0].users.push(user);
-    setTimeout(addToLoby, 5000, i + 1);
+var MainHub = new Array(100);
+for (var i = 0; i < 100; i++) {
+    MainHub[i] = {
+        flag: 0,
+        IceMan: [],
+        BlackHole: [],
+        Healer: [],
+        Tank: [],
+        Wizard: [],
+        Cloner: [],
+        Invoker: [],
+        ClockMan: [],
+        inTime: Infinity
+    };
 }
 
+function shuffle(array) {
+    var currentIndex = array.length, temporaryValue, randomIndex;
 
-function searchLoby(index) {
-    DEBUG.d({
-        Loby: loby,
-        Index: index,
-        Queue: queues[index],
-    }, 'Match', 'LobySearch');
+    while (0 !== currentIndex) {
 
-    var users = queues[index].users;
-    if (users.length != 0) {
-        let diff = queues[index].trophiesDiff;
-        var user = users.shift();
-        while (!loby.includes(user) && queues[index].users.length != 0)
-            user = users.shift();
-        if (!loby.includes(user)) {
-            setTimeout(changeQueue, timeOut, (index + 1) % 4);
-            return;
-        }
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex -= 1;
 
-        user.occupied = true;
-        var group = [user];
-        var hreoes = [user.hero];
-        var anotherTrophies = user.trophies;
-        var anotherUser, finished = false, conflict = false;
-        while (user.trophies - anotherTrophies <= diff && loby.length != 0 && !finished && !conflict) {
-            anotherUser = users.shift();
-            if (anotherUser == undefined) {
-                setTimeout(changeQueue, timeOut, index);
-                return;
-            }
-            anotherTrophies = anotherUser.trophies;
-            if (anotherUser.occupied)
-                conflict = true;
-            if (!hreoes.includes(anotherUser.hero) && !anotherUser.occupied) {
-                group.push(anotherUser);
-                hreoes.push(anotherUser.hero);
-                anotherUser.occupied = true
-            }
-            if (group.length == 4)
-                finished = true
-        }
-        if (finished)
-            startMatch(group)
-        else {
-            group.forEach(user => {
-                queues[index].users.push(user);
-                user.occupied = false;
-            });
-        }
-
-    }
-    if (loby.length > 0)
-        setTimeout(searchLoby, timeOut / loby.length, (index + 1) % 4);
-    else
-        setTimeout(searchLoby, timeOut, (index + 1) % 4);
-}
-
-function changeQueue(index) {
-
-    DEBUG.d({
-        Index: index,
-        Queue: queues[index],
-    }, 'Match', 'QueueRefresh');
-
-    var users = queues[index].users;
-    if (queues[index].users.length != 0) {
-        let diff = queues[index].time;
-        var user = users.shift();
-        while ((!loby.includes(user) || user == null) && queues[index].users.length != 0)
-            user = users.shift();
-
-        if (!loby.includes(user) || user == null) {
-            console.log("Hey");
-
-            setTimeout(changeQueue, timeOut, index);
-            return;
-        }
-
-        //change queue
-        let time = new Date().getTime();
-        if (time - user.time >= diff) // Forward To Next Queue
-            queues[Math.min(index + 1, queues.length - 1)].users.push(user);
-        else // Stay There
-            queues[index].users.push(user);
-
+        temporaryValue = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temporaryValue;
     }
 
-    setTimeout(changeQueue, timeOut, index);
+    return array;
 }
 
+function isPossible(flag) {
+    var index = 0;
+    var match = 0;
+    while (index < HEROES.length) {
+        if ((flag & (1 << index)) > 0) {
+            match++;
+        }
+        index++;
+    }
+    if (match >= MATCH_SIZE)
+        return true;
+    return false;
+}
+
+function getPossibleMoves(flag) {
+    var ans = [];
+    var index = 0;
+    var match = 0;
+    while (index < HEROES.length) {
+        if ((flag & (1 << index)) != 0) {
+            match++;
+            ans.push(index);
+        }
+        index++;
+    }
+    ans = shuffle(ans);
+    if (match >= MATCH_SIZE)
+        return ans;
+    return null;
+}
+
+function probe() {
+    var now = new Date().getTime();
+
+    for (var i = 0; i < 100; i++) {
+        while (isPossible(MainHub[i].flag)) {
+            makeGroup(i);
+        }
+    }
+
+    for (var i = 0; i < 100; i++) {
+        var neccessary = true;
+        while (neccessary && MainHub[i].flag) {
+            neccessary = false;
+            var d = now - MainHub[i].inTime;
+            console.log(d);
+            for (var j = 0; j < Math.min((d / 1000) - 1, MAX_DEPTH); j++) {
+                if (mergeAndGroup(i, j + 1)) {
+                    neccessary = true;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+function mergeAndGroup(index, lvl) {
+    var budies = [];
+
+    for (var i = 1; i < lvl; i++) {
+        budies.push(index + i);
+        if (index - i >= 0)
+            budies.push(index - i);
+    }
+
+
+    var flag = MainHub[index].flag;
+    for (var i = 0; i < budies.length; i++) {
+        flag |= MainHub[budies[i]].flag;
+    }
+
+    if (isPossible(flag)) {
+        var group = [];
+        MainHub[index].inTime = Infinity;
+        var Order = getPossibleMoves(flag);
+        for (var i = 0; i < MATCH_SIZE; i++) {
+            if (MainHub[index][HEROES[Order[i]]].length != 0) {
+                group.push(MainHub[index][HEROES[Order[i]]].shift().id);
+                if (MainHub[index][HEROES[Order[i]]].length == 0)
+                    MainHub[index].flag ^= (1 << Order[i]);
+            } else {
+                for (var j = 0; j < budies.length; j++) {
+                    if (MainHub[budies[j]][HEROES[Order[i]]].length != 0) {
+                        var left = MainHub[budies[j]][HEROES[Order[i]]].shift();
+                        group.push(left.id);
+                        if (MainHub[budies[j]][HEROES[Order[i]]].length == 0)
+                            MainHub[budies[j]].flag ^= (1 << Order[i]);
+                        if (left.time == MainHub[budies[j]].inTime)
+                            setMin(budies[j]);
+                        break;
+                    }
+                }
+            }
+        }
+        setMin(index);
+        startMatch(group);
+        return true;
+    } else
+        return false;
+}
+
+function setMin(index) {
+    var m = Infinity;
+    for (var i = 0; i < HEROES.length; i++) {
+        if (MainHub[index][HEROES[i]].length != 0)
+            m = Math.min(m, MainHub[index][HEROES[i]][0].time);
+    }
+
+    MainHub[index].inTime = m;
+}
+
+function makeGroup(index) {
+    var group = [];
+    MainHub[index].inTime = Infinity;
+    var Order = getPossibleMoves(MainHub[index].flag);
+    for (var i = 0; i < MATCH_SIZE; i++) {
+        group.push(MainHub[index][HEROES[Order[i]]].shift().id);
+        if (MainHub[index][HEROES[Order[i]]].length == 0)
+            MainHub[index].flag ^= (1 << Order[i]);
+    }
+    setMin(index);
+    startMatch(group);
+}
+
+function print(maxIndex) {
+    for (var i = 0; i < maxIndex; i++) {
+        console.log(MainHub[i]);
+    }
+    console.log(" ");
+}
 
 Match.updatePos = function () {
+
 };
 
 Match.new = function (info, socket) { //info contains id
-    let tempData = global.OnlinePlayers[info["_id"]].info;
-    var user = { _id: tempData._id, trophies: tempData.trophies, hero: tempData.currentHero, time: new Date().getTime(), occupied: false };
-    loby.splice(Utils.findIndex(user, loby, 'trophies'), 0, user);
-    queues[0].users.push(user);
+    var data = user[info["_id"]];
 
-    DEBUG.d({
-        Loby: loby,
-        Queues: queues
-    }, 'Match', 'New');
+    var index = (data.trophies / 100) | 0;
+    var t = new Date().getTime();
+    MainHub[index][data.currentHero].push({ time: t, id: data["_id"] });
+    MainHub[index].inTime = Math.min(MainHub[index].inTime, t);
+    MainHub[index].flag |= (1 << HEROES_INDEX[data.currentHero]);
+    // console.log(MainHub[index].flag);
+    // print(3);
 };
 
 function startMatch(matchGroup) {
-    var usersId = [];
-    matchGroup.forEach(user => {
-        usersId.push(user._id);
-    });
-    console.log("Start Match");
-    console.log(usersId);
-
-
-    //var matchHub = new MatchHub(usersId, 0);
-    //matchHub.startMatch();
+    console.log(matchGroup);
 }
+
+function addToLoby(i) {
+    Match.new({ _id: i }, null);
+}
+
+
+user[0] = { _id: 0, trophies: 100, currentHero: 'Tank' };
+user[1] = { _id: 1, trophies: 50, currentHero: 'Healer' };
+user[2] = { _id: 2, trophies: 140, currentHero: 'BlackHole' };
+user[3] = { _id: 3, trophies: 120, currentHero: 'ClockMan' };
+user[4] = { _id: 4, trophies: 110, currentHero: 'IceMan' };
+user[5] = { _id: 5, trophies: 109, currentHero: 'Wizard' };
+user[6] = { _id: 6, trophies: 80, currentHero: 'Cloner' };
+user[7] = { _id: 7, trophies: 700, currentHero: 'Invoker' };
+
+// addToLoby(0);
+// console.log("--------------------------");
+// addToLoby(1);
+// console.log("--------------------------");
+// addToLoby(2);
+// console.log("--------------------------");
+// addToLoby(3);
+// console.log("--------------------------");
+// addToLoby(4);
+// console.log("--------------------------");
+// addToLoby(5);
+// console.log("--------------------------");
+// addToLoby(6);
+// console.log("--------------------------");
+// addToLoby(7);
+// console.log("--------------------------");
+// setInterval(probe, 500);
+// print(3);

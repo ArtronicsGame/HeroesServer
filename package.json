@@ -35,6 +35,7 @@
     "path": "^0.12.7",
     "priorityqueue": "^0.2.1",
     "sendmail": "^1.4.1",
+    "socket.io": "^2.2.0",
     "transform-props": "^1.0.1",
     "underscore": "^1.9.1"
   },

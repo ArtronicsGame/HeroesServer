@@ -53,18 +53,8 @@ var reportState = {
         }
     },
     Match: {
-        New: {
-            Loby: true,
-            Queues: true
-        },
-        QueueRefresh: {
-            Index: true,
-            Queue: true
-        },
-        LobySearch: {
-            Loby: false,
-            Index: false,
-            Queue: false
+        Create: {
+            Members: false
         },
         Live: {
             Connect: {

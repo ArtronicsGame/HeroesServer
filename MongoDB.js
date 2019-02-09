@@ -22,8 +22,18 @@ MongoDB.begin = function () {
     // MongoDB.getClan("5ba53d46c71a3316c2064fdb", function (res) { console.log(res); });
     // MongoDB.unlockHero("5c5ad5c07543046a7ffd9dfb", "IceMan", null);
     // MongoDB.joinToClan("5c5c3dd1359a2d0d644dc8c1", "5c5ad5d033b5826a91c401b8", function (a) { console.log(a) });
-    // MongoDB.promote("5c5ad59f83a8db6a65c600ab", function (res) { console.log(res) });
+    // MongoDB.promote("5c5ad59f83a8db6a65c600ab", "5c5ad5c07543046a7ffd9dfb", function (res) { console.log(res) });
+    // MongoDB.demote("5c5ad59f83a8db6a65c600ab", "5c5c3dd1359a2d0d644dc8c1", function (res) { console.log(res) });
+    // MongoDB.kickFromClan("5c5ad59f83a8db6a65c600ab", "5c5c3dd1359a2d0d644dc8c1", function (res) { console.log(res) });
     // MongoDB.addMessage("5c5ad59f83a8db6a65c600ab", "Hey", function (a) { console.log(a); });
+    // MongoDB.leaveFromClan("5c5c3dd1359a2d0d644dc8c1", function (a) { console.log(a); });
+    // MongoDB.changeDescription("5c5ad5c07543046a7ffd9dfb", "FuckYouMobin", function (a) { console.log(a); });
+    // MongoDB.addReply("5c5ad59f83a8db6a65c600ab", "Hey", "BokhoreshMobin", function (a) { console.log(a); });
+    // MongoDB.changeHero("5c5ad5c07543046a7ffd9dfb", "Tank", function (a) { console.log(a); });
+    // MongoDB.addHeroTrophies("5c5ad5c07543046a7ffd9dfb", "Tank", 1000, function (a) { console.log(a); });
+    // MongoDB.addHeroXP("5c5ad5c07543046a7ffd9dfb", "Tank", 1000, function (a) { console.log(a); });
+    // MongoDB.addCoins("5c5ad5c07543046a7ffd9dfb", 1000, function (a) { console.log(a); });
+    // MongoDB.levelUpHero("5c5ad5c07543046a7ffd9dfb", "Tank", function (a) { console.log(a); });
 }
 
 MongoDB.newUser = function (username, callback) {
@@ -124,13 +134,13 @@ MongoDB.unlockHero = function (userId, heroName, callback) {
 };
 
 MongoDB.joinToClan = function (userId, clanId, callback) {
-    MongoDB.getUser(userId, function (status, leader) {
-        if (!leader) {
+    MongoDB.getUser(userId, function (status, user) {
+        if (!user) {
             console.log(`User (${userId}) not found`);
             callback("UserNotFound");
             return;
         }
-        if (leader.clan) {
+        if (user.clan) {
             console.log(`${userId} already joined in a clan`);
             callback("AlreadyJoined");
             return;
@@ -141,6 +151,13 @@ MongoDB.joinToClan = function (userId, clanId, callback) {
 
         Promise.all([userPromise, clanPromise])
             .then((result) => {
+                // add message
+                var message = `${user.username} joined to this clan`;
+                MongoDB.addAdminMessage(clanId, message, function (status) {
+                    console.log(status);
+                    console.log(`${userId} joined to this clan`);
+                });
+
                 callback("JoinOk");
             }).catch((err) => {
                 console.log(err);
@@ -161,7 +178,7 @@ MongoDB.promote = function (promoterUserId, userId, callback) {
             return;
         }
 
-        MongoDB.getUser(promoterUserId, function (status, promoteUser) {
+        MongoDB.getUser(promoterUserId, function (status, promoterUser) {
             if (!promoterUser) {
                 console.log(`User (${userId}) not found`);
                 callback("PromoterUserNotFound");
@@ -173,19 +190,19 @@ MongoDB.promote = function (promoterUserId, userId, callback) {
                 return;
             }
 
-            if ((promoteUser.playerClanPosition == "Leader" || promoteUser.playerClanPosition == "Co-Leader") && user.playerClanPosition == "Member") {
+            if ((promoterUser.playerClanPosition == "Leader" || promoterUser.playerClanPosition == "Co-Leader") && user.playerClanPosition == "Member") {
                 user.playerClanPosition = "Co-Leader";
                 user.save();
 
                 // add message
-                var message = `${promoteUser.username} promote ${user.username}`;
+                var message = `${promoterUser.username} promote ${user.username}`;
                 MongoDB.addAdminMessage(promoterUser.clan, message, function (status) {
                     console.log(status);
                     console.log(`${promoterUserId} promote ${userId}`);
                 });
 
                 callback("PromoteOk");
-            } else if (promoteUser.playerClanPosition == "Leader" && user.playerClanPosition == "Co-Leader") {
+            } else if (promoterUser.playerClanPosition == "Leader" && user.playerClanPosition == "Co-Leader") {
                 MongoDB.getClan(user.clan, function (clan) {
                     var promotePromise = User.findOneAndUpdate({ _id: userId }, { playerClanPosition: "Leader" });
                     var demotePromise = User.findOneAndUpdate({ _id: clan.leader }, { playerClanPosition: "Co-Leader" });
@@ -193,6 +210,13 @@ MongoDB.promote = function (promoterUserId, userId, callback) {
 
                     Promise.all([promotePromise, demotePromise, clanPromise])
                         .then((result) => {
+                            // add message
+                            var message = `${promoterUser.username} promote ${user.username}`;
+                            MongoDB.addAdminMessage(promoterUser.clan, message, function (status) {
+                                console.log(status);
+                                console.log(`${promoterUserId} promote ${userId}`);
+                            });
+
                             callback("PromoteOk");
                         }).catch((err) => {
                             console.log(err);
@@ -205,7 +229,7 @@ MongoDB.promote = function (promoterUserId, userId, callback) {
     });
 };
 
-MongoDB.demote = function (UserId, userId, callback) {
+MongoDB.demote = function (demoterUserId, userId, callback) {
     MongoDB.getUser(userId, function (status, user) {
         if (!user) {
             console.log(`User (${userId}) not found`);
@@ -218,14 +242,14 @@ MongoDB.demote = function (UserId, userId, callback) {
             return;
         }
 
-        MongoDB.getUser(UserId, function (status, demoterUser) {
+        MongoDB.getUser(demoterUserId, function (status, demoterUser) {
             if (!demoterUser) {
-                console.log(`User (${userId}) not found`);
+                console.log(`User (${demoterUserId}) not found`);
                 callback("UserNotFound");
                 return;
             }
             if (!demoterUser.clan) {
-                console.log(`${userId} do not joined in a clan`);
+                console.log(`${demoterUserId} do not joined in a clan`);
                 callback("NoClan");
                 return;
             }
@@ -266,8 +290,76 @@ MongoDB.addMessage = function (userId, msg, callback) {
             context: msg
         });
 
-        Clan.findOneAndUpdate({ _id: user.clan }, { $push: { messages: message } }).exec(function (err, res) {
-            callback("Sent");
+        Clan.findOne({ _id: user.clan }).exec(function (err, clan) {
+            if (err) {
+                console.log(err);
+                return;
+            }
+            if (!clan) {
+                callback("NoClan");
+                return;
+            }
+
+            if (clan.messages.length < 999) {
+                clan.messages.push(message);
+                clan.save();
+                callback("Sent");
+            } else {
+                var addMessagePromise = clan.messages.push(message);
+                var removeMessagePromise = clan.messages.shift();
+                Promise.all([addMessagePromise, removeMessagePromise])
+                    .then((result) => {
+                        callback("Sent");
+                    }).catch((err) => {
+                        console.log(err);
+                    });
+            }
+        });
+    });
+}
+
+MongoDB.addReply = function (userId, repliedMsg, msg, callback) {
+    User.findOne({ _id: userId }).exec(function (err, user) {
+        if (err) {
+            console.log(err);
+            return;
+        }
+        if (!user.clan) {
+            console.log(`${userId} do not joined in a clan`);
+            callback("NoClan");
+            return;
+        }
+
+        var message = new MessageModel({
+            replyMessage: repliedMsg,
+            senderID: userId,
+            context: msg
+        });
+
+        Clan.findOne({ _id: user.clan }).exec(function (err, clan) {
+            if (err) {
+                console.log(err);
+                return;
+            }
+            if (!clan) {
+                callback("NoClan");
+                return;
+            }
+
+            if (clan.messages.length < 999) {
+                clan.messages.push(message);
+                clan.save();
+                callback("Sent");
+            } else {
+                var addMessagePromise = clan.messages.push(message);
+                var removeMessagePromise = clan.messages.shift();
+                Promise.all([addMessagePromise, removeMessagePromise])
+                    .then((result) => {
+                        callback("Sent & Remove");
+                    }).catch((err) => {
+                        console.log(err);
+                    });
+            }
         });
     });
 }
@@ -278,8 +370,7 @@ MongoDB.addAdminMessage = function (clanId, msg, callback) {
             console.log(err);
             return;
         }
-        if (clan) {
-            console.log(`${userId} do not joined in a clan`);
+        if (!clan) {
             callback("NoClan");
             return;
         }
@@ -291,13 +382,15 @@ MongoDB.addAdminMessage = function (clanId, msg, callback) {
 
         if (clan.messages.length < 999) {
             clan.messages.push(message);
-            callback("sent");
+            clan.save();
+            callback("Sent");
         } else {
             var addMessagePromise = clan.messages.push(message);
-            var removeMessagePromise = clan.messages.pop(-1);
-            Promise.all([addMessagePromise, removeMessagePromise])
+            var removeMessagePromise = clan.messages.shift();
+            Promise.all([removeMessagePromise, addMessagePromise])
                 .then((result) => {
-                    callback("sent");
+                    clan.save();
+                    callback("Sent & Remove");
                 }).catch((err) => {
                     console.log(err);
                 });
@@ -306,7 +399,7 @@ MongoDB.addAdminMessage = function (clanId, msg, callback) {
 }
 
 
-MongoDB.kickFromClan = function (kickerUserId, userId) {
+MongoDB.kickFromClan = function (kickerUserId, userId, callback) {
     MongoDB.getUser(userId, function (status, user) {
         if (!user) {
             console.log(`User (${userId}) not found`);
@@ -339,11 +432,17 @@ MongoDB.kickFromClan = function (kickerUserId, userId) {
 
                     var clanPositionPromise = User.findOneAndUpdate({ _id: userId }, { playerClanPosition: "None" });
                     var userclanPromise = User.findOneAndUpdate({ _id: userId }, { clan: null });
-                    var clanPromise = Clan.findOneAndUpdate({ _id: userId.clan }, { $splice: { clanMembers: (index, 1) } });
+                    var clanPromise = Clan.findOneAndUpdate({ _id: user.clan }, { $pull: { clanMembers: user._id } });
 
                     Promise.all([clanPositionPromise, userclanPromise, clanPromise])
                         .then((result) => {
-                            user.save();
+                            // add message
+                            var message = `${kickerUser.username} kcik ${user.username}`;
+                            MongoDB.addAdminMessage(kickerUser.clan, message, function (status) {
+                                console.log(status);
+                                console.log(`${kickerUserId} kcik ${userId}`);
+                            });
+
                             callback("KickOk");
                         }).catch((err) => {
                             console.log(err);
@@ -369,9 +468,145 @@ MongoDB.leaveFromClan = function (userId, callback) {
             return;
         }
 
-        user.playerClanPosition = "None";
-        user.clan = null;
-        callback("KickOk");
+        var clanId = user.clan;
+        var clanPositionPromise = User.findOneAndUpdate({ _id: userId }, { playerClanPosition: "None" });
+        var userclanPromise = User.findOneAndUpdate({ _id: userId }, { clan: null });
+        var clanPromise = Clan.findOneAndUpdate({ _id: user.clan }, { $pull: { clanMembers: user._id } });
+        Promise.all([clanPositionPromise, clanPromise, userclanPromise])
+            .then((result) => {
+                // add message
+                var message = `${user.username} leave from clan`;
+                MongoDB.addAdminMessage(clanId, message, function (status) {
+                    console.log(status);
+                    console.log(`${userId} leave from clan`);
+                });
+
+                callback("LeaveOk");
+            }).catch((err) => {
+                console.log(err);
+            });
+    });
+}
+
+MongoDB.changeDescription = function (userId, description, callback) {
+    MongoDB.getUser(userId, function (status, user) {
+        if (!user) {
+            console.log(`User (${userId}) not found`);
+            callback("UserNotFound");
+            return;
+        }
+        if (!user.clan) {
+            console.log(`${userId} do not joined in a clan`);
+            callback("NoClan");
+            return;
+        }
+
+        if (user.playerClanPosition == "Leader" || user.playerClanPosition == "Co-Leader") {
+            Clan.findOne({ _id: user.clan }).exec(function (err, clan) {
+                if (err) {
+                    console.log(err);
+                    return;
+                }
+                if (!clan) {
+                    callback("NoClan");
+                    return;
+                }
+
+                clan.description = description;
+                clan.save();
+                callback("ChangeOk");
+            });
+        } else {
+            callback("ChangeNotAllowed");
+        }
+    });
+}
+
+MongoDB.changeHero = function (userId, hero, callback) {
+    MongoDB.getUser(userId, function (status, user) {
+        if (!user) {
+            console.log(`User (${userId}) not found`);
+            callback("UserNotFound");
+            return;
+        }
+
+        if (!user.heroesProperties.get(hero).isUnlocked) {
+            console.log(`hero ${hero} is lock for (${userId})`);
+            callback("ChangeNotAllowed");
+            return;
+        }
+
+        user.currentHero = hero;
+        user.save();
+        callback("ChangeOk");
+    });
+}
+
+MongoDB.addHeroTrophies = function (userId, hero, amount, callback) {
+    MongoDB.getUser(userId, function (status, user) {
+        if (!user) {
+            console.log(`User (${userId}) not found`);
+            callback("UserNotFound");
+            return;
+        }
+
+        if (!user.heroesProperties.get(hero).isUnlocked) {
+            console.log(`hero ${hero} is lock for (${userId})`);
+            callback("HeroLock");
+            return;
+        }
+
+        user.heroesProperties.get(hero).trophies += amount;
+        user.save();
+        callback("TrophyAdded");
+    });
+}
+
+MongoDB.addHeroXP = function (userId, hero, amount, callback) {
+    MongoDB.getUser(userId, function (status, user) {
+        if (!user) {
+            console.log(`User (${userId}) not found`);
+            callback("UserNotFound");
+            return;
+        }
+
+        if (!user.heroesProperties.get(hero).isUnlocked) {
+            console.log(`hero ${hero} is lock for (${userId})`);
+            callback("HeroLock");
+            return;
+        }
+
+        user.heroesProperties.get(hero).experience += amount;
+        user.save();
+        callback("XPAdded");
+    });
+}
+
+MongoDB.addCoins = function (userId, amount, callback) {
+    MongoDB.getUser(userId, function (status, user) {
+        if (!user) {
+            console.log(`User (${userId}) not found`);
+            callback("UserNotFound");
+            return;
+        }
+
+        user.coins += amount;
+        user.save();
+        callback("CoinsAdded");
+    });
+}
+
+MongoDB.levelUpHero = function (userId, hero, callback) {
+    MongoDB.getUser(userId, function (status, user) {
+        if (!user) {
+            console.log(`User (${userId}) not found`);
+            callback("UserNotFound");
+            return;
+        }
+
+        user.heroesProperties.get(hero).basicInfo.level ++;
+        user.save();
+        callback("LevelUpOk");
     });
 }
 

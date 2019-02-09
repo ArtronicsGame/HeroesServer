@@ -18,11 +18,9 @@ class MatchHub {
     constructor(usersIds, matchId) {
         this.hub = {};
 
-        this.usersIds = usersIds;
-        this.usersSocket = [];
-        for (var user in usersIds) {
-            // this.usersSocket.push(global.OnlinePlayers[user]['socket']);
-
+        this.hub.usersIds = usersIds;
+        for (var i = 0; i < usersIds.length; i++) {
+            global.OnlinePlayers.get(usersIds[i]).match = matchId;
         }
         this.hub.matchId = matchId;
 
@@ -56,13 +54,23 @@ class MatchHub {
 
     }
 
-    endMatch() {
-
+    endMatch(hub) {
+        clearInterval(hub.interval);
+        clearTimeout(hub.timeOut);
+        //TODO:Judgement & Rewarding
+        for (var i = 0; i < hub.usersIds.length; i++) {
+            global.OnlinePlayers.get(hub.usersIds[i]).match = null;
+        }
+        if (global.Matches.has(hub.matchId))
+            global.Matches.delete(hub.matchId);
     }
 
     destroy() {
         clearInterval(this.hub.interval);
         clearTimeout(this.hub.timeOut);
+        for (var i = 0; i < this.hub.usersIds.length; i++) {
+            global.OnlinePlayers.get(this.hub.usersIds[i]).match = matchId;
+        }
     }
 
     render() {

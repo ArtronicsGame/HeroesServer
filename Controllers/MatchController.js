@@ -1,12 +1,14 @@
 const Match = module.exports = {};
-// const MatchHub = require('../MatchHub.js');
+const MatchHub = require('../MatchHub.js');
 const Utils = require("../Utils.js");
 const DEBUG = require('../DEBUG.js')
+var UniId = require('uniqid');
 
 const HEROES = ["IceMan", "BlackHole", "Healer", "Tank", "Wizard", "Cloner", "Invoker", "ClockMan"];
 const HEROES_INDEX = { IceMan: 0, BlackHole: 1, Healer: 2, Tank: 3, Wizard: 4, Cloner: 5, Invoker: 6, ClockMan: 7 };
 const MAX_DEPTH = 6;
 const MATCH_SIZE = 4;
+const BOT_LIMIT = 10000;
 
 var user = {};
 
@@ -88,11 +90,19 @@ function probe() {
             neccessary = false;
             var d = now - MainHub[i].inTime;
             console.log(d);
-            for (var j = 0; j < Math.min((d / 1000) - 1, MAX_DEPTH); j++) {
-                if (mergeAndGroup(i, j + 1)) {
-                    neccessary = true;
-                    break;
+            if (d < BOT_LIMIT) {
+                for (var j = 0; j < Math.min((d / 1000) - 1, MAX_DEPTH); j++) {
+                    if (mergeAndGroup(i, j + 1)) {
+                        neccessary = true;
+                        break;
+                    }
                 }
+            } else {
+                //TODO: Grouping And Fill Empty Parts With Bots
+                // if (mergeAndGroupBotAllowed(i)) {
+                //     neccessary = true;
+                //     break;
+                // }
             }
         }
     }
@@ -166,46 +176,74 @@ function makeGroup(index) {
     startMatch(group);
 }
 
-function print(maxIndex) {
-    for (var i = 0; i < maxIndex; i++) {
-        console.log(MainHub[i]);
-    }
-    console.log(" ");
-}
+Match.cancel = function (info, socket) {
+    // var data = user[info["_id"]]; // Internal Test
+    var data = global.OnlinePlayers.get(info["_id"]).data;
 
-Match.updatePos = function () {
+    var index = (data.trophies / 100) | 0;
+    var heroId = (1 << HEROES_INDEX[data.currentHero]);
+
+    for (var i = 0; i < MainHub[index][heroId].length; i++) {
+        if (MainHub[index][data.currentHero][i].id == info["_id"]) {
+            MainHub[index][heroId].splice(i, 1);
+            if (MainHub[index][heroId].length == 0)
+                MainHub[index][heroId].flag ^= heroId;
+            if (i == 0)
+                setMin(index);
+            break;
+        }
+    }
+
+    //TODO: Communicate To Client
 
 };
 
+Match.updatePos = function (info, rinfo) {
+    //TODO: Implement Moving By UDP Connection
+};
+
+Match.action = function (info, socket) {
+    //TODO: Implement Actions By TCP Connection
+}
+
 Match.new = function (info, socket) { //info contains id
-    var data = user[info["_id"]];
+    // var data = user[info["_id"]]; // Internal Test
+    var data = global.OnlinePlayers.get(info["_id"]).data;
 
     var index = (data.trophies / 100) | 0;
     var t = new Date().getTime();
     MainHub[index][data.currentHero].push({ time: t, id: data["_id"] });
     MainHub[index].inTime = Math.min(MainHub[index].inTime, t);
     MainHub[index].flag |= (1 << HEROES_INDEX[data.currentHero]);
-    // console.log(MainHub[index].flag);
-    // print(3);
+
 };
 
 function startMatch(matchGroup) {
-    console.log(matchGroup);
+    DEBUG.d({
+        Members: matchGroup
+    }, 'Match', 'Create');
+
+    var id = UniId();
+    var ins = new MatchHub(makeGroup, id);
+    global.Matches.set(id, ins);
+    ins.startMatch();
 }
 
-function addToLoby(i) {
-    Match.new({ _id: i }, null);
-}
+setInterval(probe, 1000);
+
+// function addToLoby(i) {
+//     Match.new({ _id: i }, null);
+// }
 
 
-user[0] = { _id: 0, trophies: 100, currentHero: 'Tank' };
-user[1] = { _id: 1, trophies: 50, currentHero: 'Healer' };
-user[2] = { _id: 2, trophies: 140, currentHero: 'BlackHole' };
-user[3] = { _id: 3, trophies: 120, currentHero: 'ClockMan' };
-user[4] = { _id: 4, trophies: 110, currentHero: 'IceMan' };
-user[5] = { _id: 5, trophies: 109, currentHero: 'Wizard' };
-user[6] = { _id: 6, trophies: 80, currentHero: 'Cloner' };
-user[7] = { _id: 7, trophies: 700, currentHero: 'Invoker' };
+// user[0] = { _id: 0, trophies: 100, currentHero: 'Tank' };
+// user[1] = { _id: 1, trophies: 50, currentHero: 'Healer' };
+// user[2] = { _id: 2, trophies: 140, currentHero: 'BlackHole' };
+// user[3] = { _id: 3, trophies: 120, currentHero: 'ClockMan' };
+// user[4] = { _id: 4, trophies: 110, currentHero: 'IceMan' };
+// user[5] = { _id: 5, trophies: 109, currentHero: 'Wizard' };
+// user[6] = { _id: 6, trophies: 80, currentHero: 'Cloner' };
+// user[7] = { _id: 7, trophies: 700, currentHero: 'Invoker' };
 
 // addToLoby(0);
 // console.log("--------------------------");
@@ -223,5 +261,4 @@ user[7] = { _id: 7, trophies: 700, currentHero: 'Invoker' };
 // console.log("--------------------------");
 // addToLoby(7);
 // console.log("--------------------------");
-// setInterval(probe, 500);
 // print(3);

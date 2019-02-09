@@ -39,10 +39,17 @@
   <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
   <script>
     $(function () {
-      var socket = io();
+      var socket = io().on('connect', function () {
+        var id = prompt("Insert The Match Id");
+        socket.emit("match", id);
+      });;
+
+      socket.on('matchIdNotFound', function () {
+        var id = prompt("Invalid Id\nInsert The Match Id");
+        socket.emit("match", id);
+      });
 
       socket.on('frame', function (msg) {
-        console.log(msg);
         $('.center').attr("src", msg);
       });
     });

@@ -13,7 +13,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const MatchHub = require('./MatchHub.js');
 const PlayerController = require('./Controllers/PlayerController.js');
 const ClanController = require('./Controllers/ClanController.js');
-// const MatchController = require('./Controllers/MatchController.js');
+const MatchController = require('./Controllers/MatchController.js');
 const Utils = require('./Utils.js');
 const DEBUG = require('./DEBUG.js');
 
@@ -25,8 +25,9 @@ global.HTTP_PORT = 254;
 global.SERVER_IP = '193.176.243.42';
 global.UDPServer = dgram.createSocket('udp4');
 global.MongoDB = require('./MongoDB.js');
-global.OnlinePlayers = {};
-global.Matches = new Array(100000);
+global.OnlinePlayers = new Map();
+global.SocketIds = new Map();
+global.Matches = new Map();
 //#endregion
 
 //#region HTTP Server ----------------------------------------------------------
@@ -65,17 +66,20 @@ app.use('/viewer', express.static(htmlPath));
 io.on('connection', function (socket) {
     DEBUG.d({ Id: socket.id }, 'Match', 'Live', 'Connect');
 
-    var matchHub = new MatchHub("usersId", 0);
-    matchHub.startMatch();
+    socket.on('match', function (matchId) {
 
-    var interval = setInterval(function () {
-        socket.emit('frame', matchHub.render());
-    }, REFRESH_RATE);
+        if (Matches.has(matchId)) {
+            var interval = setInterval(function () {
+                socket.emit('frame', matchHub.render());
+            }, REFRESH_RATE);
 
-    socket.on('disconnect', function () {
-        DEBUG.d({ Id: socket.id }, 'Match', 'Live', 'Disconnect');
-        clearInterval(interval);
-        matchHub.destroy();
+            socket.on('disconnect', function () {
+                DEBUG.d({ Id: socket.id }, 'Match', 'Live', 'Disconnect');
+                clearInterval(interval);
+                matchHub.destroy();
+            });
+        } else
+            socket.emit('matchIdNotFound');
     });
 
 });
@@ -98,6 +102,10 @@ var server = net.createServer(function (socket) {
             Port: socket.remotePort,
             Message: err
         }, 'Error', 'TCP');
+
+        var id = SocketIds[socket];
+        global.OnlinePlayers.delete(id);
+        global.SocketIds.delete(socket);
     });
 
     socket.on('end', function () {
@@ -105,6 +113,10 @@ var server = net.createServer(function (socket) {
             IP: socket.remoteAddress,
             Port: socket.remotePort
         }, 'Requests', 'TCP', 'Disconnect');
+
+        var id = SocketIds[socket];
+        global.OnlinePlayers.delete(id);
+        global.SocketIds.delete(socket);
     });
 
     socket.on('data', function (data) {

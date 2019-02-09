@@ -28,7 +28,9 @@ Player.new = function (info, socket) {
 
 Player.get = function (info, socket) {
     MongoDB.getUser(info["_id"], (getState, user) => {
-        global.OnlinePlayers[info["_id"]] = { info: user, socket: socket, udpInfo: null };
+
+        global.OnlinePlayers.set(info["_id"], { info: user, socket: socket, udpInfo: null, data: user, match: null });
+        global.SocketIds.set(socket, info["_id"]);
 
         DEBUG.d({
             IP: socket.remoteAddress,

@@ -1,6 +1,6 @@
 const fs = require('fs');
 const Match = require('./Models/Match.js');
-const MapManager = require('./MapManager.js');
+const ColliderManager = require('./ColliderManager.js');
 const { createCanvas } = require('canvas');
 
 var _collisions = require('./libs/Collisions/Collisions.js');
@@ -11,29 +11,29 @@ var Circle = _interopRequireDefault(_circle);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-const MATCH_TIME = 2 * 60 * 1000; // Minute * Seconds Per Minute * Milliseconds Per Second
+const MATCH_TIME = 0.5 * 60 * 1000; // Minute * Seconds Per Minute * Milliseconds Per Second
 const UPDATE_INTERVAL = 100;
 
 class MatchHub {
     constructor(usersIds, matchId) {
         this.hub = {};
 
-        this.hub.usersIds = usersIds;
-        for (var i = 0; i < usersIds.length; i++) {
-            global.OnlinePlayers.get(usersIds[i]).match = matchId;
-        }
+        // this.hub.usersIds = usersIds;
+        // for (var i = 0; i < usersIds.length; i++) {
+        //     global.OnlinePlayers.get(usersIds[i]).match = matchId;
+        // }
         this.hub.matchId = matchId;
 
 
         //#region Read Map -------------------------------
         this.hub.system = new Collisions.default();
 
-        var items = MapManager.getMap("TestMap");
+        var items = ColliderManager.getMap("TestMap");
         for (var i = 0; i < items.length; i++)
             this.hub.system.insert(items[i]);
 
-        this.hub.c = items[0];
-        this.hub.c1 = items[2];
+        // this.hub.c = items[0];
+        // this.hub.c1 = items[2];
         //#endregion
 
     }
@@ -45,9 +45,9 @@ class MatchHub {
 
     //Update Server Driven Object Like Bullets, ...
     update(hub) {
-        hub.c.x++;
-        hub.c1.x += 2;
-        hub.c1.y++;
+        // hub.c.x++;
+        // hub.c1.x += 2;
+        // hub.c1.y++;
     }
 
     onMessage() {
@@ -58,9 +58,9 @@ class MatchHub {
         clearInterval(hub.interval);
         clearTimeout(hub.timeOut);
         //TODO:Judgement & Rewarding
-        for (var i = 0; i < hub.usersIds.length; i++) {
-            global.OnlinePlayers.get(hub.usersIds[i]).match = null;
-        }
+        // for (var i = 0; i < hub.usersIds.length; i++) {
+        //     global.OnlinePlayers.get(hub.usersIds[i]).match = null;
+        // }
         if (global.Matches.has(hub.matchId))
             global.Matches.delete(hub.matchId);
     }

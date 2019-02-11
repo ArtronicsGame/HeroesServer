@@ -7,11 +7,11 @@ var _polygon = require('./libs/Collisions/modules/Polygon.js');
 var Polygon = _interopRequireDefault(_polygon);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-const MapManager = module.exports = {};
+const ColliderManager = module.exports = {};
 
 var Maps = new Map();
 
-MapManager.getMap = function (name) {
+ColliderManager.getMap = function (name) {
     var content;
     if (Maps.has(name) && !Maps[name].dirty)//Dirty Param Becomes True When Map Updated From Control Panel And Server Was Up
     {
@@ -20,7 +20,7 @@ MapManager.getMap = function (name) {
     else {
         content = fs.readFileSync(__dirname + `/Colliders/Maps/${name}.hm`, "utf8");
         var lines = content.split("\n");
-        Maps.set(name, { shapes: [], dirty: false });
+        var temp = [];
 
         var items = [];
         for (var k = 0; k < lines.length; k++) {
@@ -37,6 +37,7 @@ MapManager.getMap = function (name) {
                     var rawCoord = shapeData.split(",");
                     x = parseInt(rawCoord[0]), y = parseInt(rawCoord[1]), r = parseInt(rawCoord[2]);
                     var input = [x, y, r];
+                    temp.push(input);
                     items.push(new Circle.default(input));
                     break;
                 case "1": // Polygon
@@ -45,13 +46,22 @@ MapManager.getMap = function (name) {
                     for (var i = 0; i < rawCoord.length; i += 2) {
                         input.push([rawCoord[i], rawCoord[i + 1]]);
                     }
-
+                    temp.push(input);
                     items.push(new Polygon.default(input));
+                    break;
+                case "2": // Line
+                    //TODO: Implement Insert Line 
+                    break;
+                case "3": // Objects 
+                    //TODO: Implement Inserting Object
                     break;
             }
         }
+        Maps.set(name, { shapes: temp, dirty: false });
 
         return items;
     }
 }
+
+
 

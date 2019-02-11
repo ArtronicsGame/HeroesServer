@@ -70,13 +70,17 @@ io.on('connection', function (socket) {
 
         if (Matches.has(matchId)) {
             var interval = setInterval(function () {
-                socket.emit('frame', matchHub.render());
+                if (Matches.get(matchId)) {
+                    socket.emit('frame', Matches.get(matchId).render());
+                } else {
+                    clearInterval(interval);
+                    socket.emit('destroyed');
+                }
             }, REFRESH_RATE);
 
             socket.on('disconnect', function () {
                 DEBUG.d({ Id: socket.id }, 'Match', 'Live', 'Disconnect');
                 clearInterval(interval);
-                matchHub.destroy();
             });
         } else
             socket.emit('matchIdNotFound');
@@ -84,6 +88,9 @@ io.on('connection', function (socket) {
 
 });
 
+var ins = new MatchHub(null, "12");
+global.Matches.set("12", ins);
+ins.startMatch();
 
 http.listen(process.env.PORT || HTTP_PORT);
 //#endregion

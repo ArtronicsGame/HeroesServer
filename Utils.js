@@ -1,6 +1,29 @@
 const Utils = module.exports = {};
 const _ = require('underscore');
 
+var numPool = new Map();
+for (var i = 0; i < 2000; i++) {
+    numPool.set(i, false);
+}
+
+var last = 0;
+Utils.getId = function () {
+    //TODO: Handle Full Pool Case
+    for (; last < 2000; last++) {
+        if (numPool.get(last) == false) {
+            numPool.set(last, true);
+            return last + (PMID * 3000);
+        }
+
+        if (last == 1999)
+            last = 0;
+    }
+};
+
+Utils.freeId = function (id) {
+    numPool.set(id - (PMID * 3000), false);
+};
+
 Utils.encodeTCP = function (rawData) {
     /**
      * Send packet

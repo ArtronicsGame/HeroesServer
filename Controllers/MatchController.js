@@ -2,7 +2,7 @@ const Match = module.exports = {};
 const MatchHub = require('../MatchHub.js');
 const Utils = require("../Utils.js");
 const DEBUG = require('../DEBUG.js')
-var UniId = require('uniqid');
+const UniId = require('uniqid');
 
 const HEROES = ["IceMan", "BlackHole", "Healer", "Tank", "Wizard", "Cloner", "Invoker", "ClockMan"];
 const HEROES_INDEX = { IceMan: 0, BlackHole: 1, Healer: 2, Tank: 3, Wizard: 4, Cloner: 5, Invoker: 6, ClockMan: 7 };
@@ -178,7 +178,7 @@ function makeGroup(index) {
 
 Match.cancel = function (info, socket) {
     // var data = user[info["_id"]]; // Internal Test
-    var data = global.OnlinePlayers.get(info["_id"]).data;
+    var data = JSON.parse(global.RedisDB.hget(info["_id"], "Info"));
 
     var index = (data.trophies / 100) | 0;
     var heroId = (1 << HEROES_INDEX[data.currentHero]);
@@ -208,7 +208,7 @@ Match.action = function (info, socket) {
 
 Match.new = function (info, socket) { //info contains id
     // var data = user[info["_id"]]; // Internal Test
-    var data = global.OnlinePlayers.get(info["_id"]).data;
+    var data = JSON.parse(global.RedisDB.hget(info["_id"], "Info"));
 
     var index = (data.trophies / 100) | 0;
     var t = new Date().getTime();

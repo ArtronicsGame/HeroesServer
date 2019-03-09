@@ -2,10 +2,10 @@
   "name": "heroes_main",
   "version": "0.1.0",
   "description": "One of coolest Iranian multiplayer game server side consist UDP and TCP Communication",
-  "main": "server.js",
+  "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node app.js"
   },
   "repository": {
     "type": "git",
@@ -29,6 +29,8 @@
     "collisions": "^2.0.13",
     "dgram": "^1.0.1",
     "express": "^4.16.4",
+    "get-port": "^4.2.0",
+    "ioredis": "^4.6.2",
     "mongoose": "^5.2.15",
     "mongoose-simple-random": "^0.4.1",
     "nodemailer": "^4.6.8",

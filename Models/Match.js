@@ -6,5 +6,6 @@ module.exports = Mongoose.model("Matches", Mongoose.Schema({
     teamAScore: { type: Number, default: 0 },
     teamBScore: { type: Number, default: 0 },
     playerIds: [{ type: Mongoose.Schema.Types.ObjectId, ref: 'Users' }],
-    heroesProperties: [HeroPropertiesSchema]
+    heroesProperties: [HeroPropertiesSchema],
+    itemLevels: [{ type: Number, default: 0 }]
 }));

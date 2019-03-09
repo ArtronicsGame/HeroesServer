@@ -50,6 +50,11 @@ var reportState = {
                 IP: true,
                 Port: true
             }
+        },
+        SharedTCP: {
+            Forward: {
+                Message: true
+            }
         }
     },
     Match: {

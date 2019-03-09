@@ -18,10 +18,7 @@ class MatchHub {
     constructor(usersIds, matchId) {
         this.hub = {};
 
-        // this.hub.usersIds = usersIds;
-        // for (var i = 0; i < usersIds.length; i++) {
-        //     global.OnlinePlayers.get(usersIds[i]).match = matchId;
-        // }
+        this.hub.usersIds = usersIds;
         this.hub.matchId = matchId;
 
 
@@ -69,8 +66,11 @@ class MatchHub {
         clearInterval(this.hub.interval);
         clearTimeout(this.hub.timeOut);
         for (var i = 0; i < this.hub.usersIds.length; i++) {
-            global.OnlinePlayers.get(this.hub.usersIds[i]).match = matchId;
+            global.OnlinePlayers.get(this.hub.usersIds[i]).match = null;
         }
+
+        if (global.Matches.has(hub.matchId))
+            global.Matches.delete(hub.matchId);
     }
 
     render() {

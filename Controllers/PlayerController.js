@@ -5,7 +5,7 @@ const DEBUG = require('../DEBUG.js')
 const Player = module.exports = {};
 
 Player.new = function (info, socket) {
-    MongoDB.newUser(info["username"], (registerState, newUserId) => {
+    MongoDB.Users.new(info["username"], (registerState, newUserId) => {
         DEBUG.d({
             IP: socket.remoteAddress,
             Port: socket.remotePort,
@@ -27,9 +27,17 @@ Player.new = function (info, socket) {
 };
 
 Player.get = function (info, socket) {
-    MongoDB.getUser(info["_id"], (getState, user) => {
+    MongoDB.Users.get(info["_id"], (getState, user) => {
 
-        global.OnlinePlayers.set(info["_id"], { info: user, socket: socket, udpInfo: null, data: user, match: null });
+        if (getState != STATUS_OK) {
+            console.log(getState);
+            return;
+        }
+
+        global.RedisDB.hset(info["_id"], "Trophies", user.trophies);
+        global.RedisDB.hset(info["_id"], "CurrentHero", user.currentHero);
+        global.RedisDB.hset(info["_id"], "PM_ID", PMID);
+        global.OnlinePlayers.set(info["_id"], { socket: socket, udpInfo: null, data: user, match: null });
         global.SocketIds.set(socket, info["_id"]);
 
         DEBUG.d({

@@ -27,14 +27,15 @@ global.DEDICATED_PORT = 0;
 global.REFRESH_RATE = 500;
 global.TCPSERVER_PORT = 8008;
 global.HTTP_PORT = 254;
-global.SERVER_IP = '193.176.243.42';
+global.SERVER_IP = '5.253.27.99';
 global.UDPServer = dgram.createSocket('udp4');
 global.OnlinePlayers = new Map();
 global.SocketIds = new Map();
 global.Matches = new Map();
 
-global.RedisDB = new Redis(6379, '193.176.243.42');
+global.RedisDB = new Redis(6379, '5.253.27.99');
 global.MongoDB = require('./MongoDB.js');
+global.Utils = require('./Utils.js');
 //#endregion
 
 //#region Connect Modules
@@ -42,7 +43,6 @@ const MatchHub = require('./MatchHub.js');
 const PlayerController = require('./Controllers/PlayerController.js');
 const ClanController = require('./Controllers/ClanController.js');
 const MatchController = require('./Controllers/MatchController.js');
-const Utils = require('./Utils.js');
 const DEBUG = require('./DEBUG.js');
 //#endregion
 
@@ -76,9 +76,9 @@ app.post('/bestPort', function (req, res) {
     var users = JSON.parse(req.body.raw);
     console.log(users);
     var matchId = Utils.getId();
-    console.log(matchId);
+    console.log(matchId.toString());
     var ins = new MatchHub(users, matchId);
-    global.Matches.set(matchId, ins);
+    global.Matches.set(matchId.toString(), ins);
 
     console.log(DEDICATED_PORT);
     res.status(STATUS_OK).send(JSON.stringify({
@@ -169,21 +169,19 @@ getPort({ port: Array.from(Array(100), (val, key) => key + 1024 + (100 * PMID)) 
         }, 'Requests', 'TCP', 'Connect');
 
         socket.on('error', function (err) {
-            return;
             DEBUG.d({
                 IP: socket.remoteAddress,
                 Port: socket.remotePort,
                 Message: err
             }, 'Error', 'TCP');
 
-
+            socket.destroy();
             var id = SocketIds[socket];
             global.OnlinePlayers.delete(id);
             global.SocketIds.delete(socket);
         });
 
-        socket.on('end', function () {
-            return;
+        socket.on('close', function () {
             DEBUG.d({
                 IP: socket.remoteAddress,
                 Port: socket.remotePort
@@ -195,12 +193,8 @@ getPort({ port: Array.from(Array(100), (val, key) => key + 1024 + (100 * PMID)) 
         });
 
         socket.on('data', function (data) {
-            PlayerController.get({ _id: '5c61dbf97af24959392825fb' }, socket);
-            PlayerController.get({ _id: '5c61dbadf6e2ce5929423572' }, socket);
-            return;
-
-            data = Utils.decodeTCP(data);
-            var request = data.value;
+            data = JSON.parse(data);
+            var request = data;
 
             DEBUG.d({
                 IP: socket.remoteAddress,
@@ -215,7 +209,7 @@ getPort({ port: Array.from(Array(100), (val, key) => key + 1024 + (100 * PMID)) 
 
     dedicatedServer.listen(DEDICATED_PORT, function () {
         DEBUG.d({
-            Message: `Dedcated TCPServer #${process.env.pm_id} listening on: ` + SERVER_IP + ":" + DEDICATED_PORT
+            Message: `Dedicated TCPServer #${process.env.pm_id} listening on: ` + SERVER_IP + ":" + DEDICATED_PORT
         }, 'Requests', 'TCP', 'Start');
     });
     //#endregion
@@ -231,8 +225,8 @@ getPort({ port: Array.from(Array(100), (val, key) => key + 1024 + (100 * PMID)) 
     });
 
     UDPServer.on('message', function (msg, rinfo) {
-        var message = msg.toString("utf-8", 8);
-        message = message.substring(0, message.lastIndexOf('}') + 1);
+        var message = msg.toString("utf-8");
+        // message = message.substring(0, message.lastIndexOf('}') + 1);
 
         DEBUG.d({
             IP: rinfo.address,
@@ -240,8 +234,12 @@ getPort({ port: Array.from(Array(100), (val, key) => key + 1024 + (100 * PMID)) 
             Data: message
         }, 'Requests', 'UDP', 'Data');
 
-        var request = JSON.parse(message);
-        eval(request["_type"])(request["_info"], rinfo);
+        if (msg.indexOf("{") == 0) {
+            var request = JSON.parse(message);
+            eval(request["_type"])(request["_info"], rinfo);
+        } else {
+            MatchController.route(message, rinfo.address + ":" + rinfo.port.toString());
+        }
     });
     //#endregion
 });

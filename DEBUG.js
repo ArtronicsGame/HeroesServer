@@ -93,8 +93,8 @@ var reportState = {
     },
     Error: {
         TCP: {
-            IP: false,
-            Port: false,
+            IP: true,
+            Port: true,
             Message: true
         },
         UDP: {

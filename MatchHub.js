@@ -1,93 +1,73 @@
-const fs = require('fs');
-const Match = require('./Models/Match.js');
-const ColliderManager = require('./ColliderManager.js');
-const { createCanvas } = require('canvas');
+const execFile = require('child_process').execFile;
+const readline = require('readline');
 
-var _collisions = require('./libs/Collisions/Collisions.js');
-var Collisions = _interopRequireDefault(_collisions);
-
-var _circle = require('./libs/Collisions/modules/Circle.js');
-var Circle = _interopRequireDefault(_circle);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-const MATCH_TIME = 0.5 * 60 * 1000; // Minute * Seconds Per Minute * Milliseconds Per Second
-const UPDATE_INTERVAL = 100;
+const MATCH_TIME = 3 * 60 * 1000; // Minute * Seconds Per Minute * Milliseconds Per Second
+const JOIN_TIMEOUT = 5 * 1000;
 
 class MatchHub {
     constructor(usersIds, matchId) {
         this.hub = {};
-
         this.hub.usersIds = usersIds;
+        this.hub.matchSize = 1;
+        this.hub.counter = 0;
         this.hub.matchId = matchId;
-
-
-        //#region Read Map -------------------------------
-        this.hub.system = new Collisions.default();
-
-        var items = ColliderManager.getMap("TestMap");
-        for (var i = 0; i < items.length; i++)
-            this.hub.system.insert(items[i]);
-
-        // this.hub.c = items[0];
-        // this.hub.c1 = items[2];
-        //#endregion
-
+        this.hub.match = execFile('/home/centos/Physic/Match');
     }
 
-    startMatch() {
-        this.hub.timeOut = setTimeout(this.endMatch, MATCH_TIME, this.hub);
-        this.hub.interval = setInterval(this.update, UPDATE_INTERVAL, this.hub);
+    tcpHandshake(id, socket) {
+        socket.pipe(this.hub.match.stdin, { end: false });
+        this.hub.match.stdout.pipe(socket);
+
+        if (++this.hub.counter == 2 * this.hub.matchSize) {
+            console.log("Yeeeeap :D");
+            this.hub.match.stdin.write("Start\n");
+            this.hub.timeOut = setTimeout(this.endMatch, MATCH_TIME, this.hub);
+        }
     }
 
-    //Update Server Driven Object Like Bullets, ...
-    update(hub) {
-        // hub.c.x++;
-        // hub.c1.x += 2;
-        // hub.c1.y++;
+
+
+    udpHandshake(id, rinfo) {
+        const rl = readline.createInterface({
+            input: this.hub.match.stderr
+        });
+
+        rl.on('line', (input) => {
+            global.sendUDPResponse(input, rinfo);
+        });
+
+        console.log(rinfo.address.toString());
+
+        if (++this.hub.counter == 2 * this.hub.matchSize) {
+            console.log("Yeeeeap :D");
+            this.hub.match.stdin.write("Start\n");
+            this.hub.timeOut = setTimeout(this.endMatch, MATCH_TIME, this.hub);
+        }
     }
 
-    onMessage() {
+    onPacket(data) {
 
     }
 
     endMatch(hub) {
         clearInterval(hub.interval);
         clearTimeout(hub.timeOut);
-        //TODO:Judgement & Rewarding
-        // for (var i = 0; i < hub.usersIds.length; i++) {
-        //     global.OnlinePlayers.get(hub.usersIds[i]).match = null;
-        // }
+        //TODO: Judgement & Rewarding
+        //TODO: Set Players Match Null
         if (global.Matches.has(hub.matchId))
             global.Matches.delete(hub.matchId);
+        global.Utils.freeId(hub.matchId)
     }
 
     destroy() {
         clearInterval(this.hub.interval);
         clearTimeout(this.hub.timeOut);
-        for (var i = 0; i < this.hub.usersIds.length; i++) {
-            global.OnlinePlayers.get(this.hub.usersIds[i]).match = null;
-        }
 
-        if (global.Matches.has(hub.matchId))
-            global.Matches.delete(hub.matchId);
-    }
+        if (global.Matches.has(this.hub.matchId))
+            global.Matches.delete(this.hub.matchId);
 
-    render() {
-        const canvas = createCanvas(1620, 1000);
-        const ctx = canvas.getContext('2d');
-        ctx.strokeStyle = '#000';
-        ctx.fillStyle = '#FFF'
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.beginPath();
+        global.Utils.freeId(this.hub.matchId)
 
-        this.hub.system.draw(ctx);
-
-        ctx.fillStyle = '#000'
-        ctx.stroke();
-        ctx.fill();
-
-        return canvas.toDataURL('image/jpeg', 0.01);
     }
 }
 

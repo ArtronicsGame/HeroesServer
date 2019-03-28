@@ -25,8 +25,6 @@ class MatchHub {
         }
     }
 
-
-
     udpHandshake(id, rinfo) {
         const rl = readline.createInterface({
             input: this.hub.match.stderr

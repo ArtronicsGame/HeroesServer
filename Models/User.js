@@ -27,6 +27,8 @@ module.exports = Mongoose.model("Users", new Mongoose.Schema({
     recentlyMatches: { type: Array, of: Mongoose.Schema.Types.ObjectId, ref: 'Matches' },
     clan: { type: Mongoose.Schema.Types.ObjectId, default: null, ref: 'Clans' },
     tournament: { type: Mongoose.Schema.Types.ObjectId, default: null },
+    matchIP: { type: String, default: "None" },
+    matchPort: { type: String, default: -1 },
     playerLog: [String],
     playerClanPosition: { type: String, enum: ["Leader", "Co-Leader", "Member", "None"], default: "None" }
 }));

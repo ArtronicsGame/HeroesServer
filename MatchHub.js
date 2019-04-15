@@ -5,13 +5,32 @@ const MATCH_TIME = 3 * 60 * 1000; // Minute * Seconds Per Minute * Milliseconds 
 const JOIN_TIMEOUT = 5 * 1000;
 
 class MatchHub {
-    constructor(usersIds, matchId) {
+    constructor(usersIds, matchId, fakeIds, ) {
         this.hub = {};
         this.hub.usersIds = usersIds;
         this.hub.matchSize = 1;
         this.hub.counter = 0;
         this.hub.matchId = matchId;
         this.hub.match = execFile('/home/centos/Physic/Match');
+
+        var req = [];
+        for (var i = 0; i < usersIds.length; i++) {
+            req.push(['hget', usersIds[i], 'CurrentHero']);
+        }
+
+        RedisDB.multi(req).exec(function (err, raw) {
+            if (err != null) {
+                //TODO: Handle The Error
+            }
+
+            for (var i = 0; i < raw.length; i++) {
+                this.match.stdin.write(usersIds[i] + "\n");
+                this.match.stdin.write(fakeIds[i] + "\n");
+                this.match.stdin.write(raw[i][1] + "\n");
+            }
+
+        }.bind({ match: this.hub.match }));
+
     }
 
     tcpHandshake(id, socket) {

@@ -78,9 +78,9 @@ var reportState = {
             Filter: { username: 'Hojat' }
         },
         Get: {
-            IP: false,
-            Port: false,
-            Status: false,
+            IP: true,
+            Port: true,
+            Status: true,
             Values: ['username']
         }
     },

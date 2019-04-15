@@ -76,15 +76,18 @@ app.post('/bestPort', function (req, res) {
     var users = JSON.parse(req.body.raw);
     console.log(users);
     var matchId = Utils.getId();
-    console.log(matchId.toString());
-    var ins = new MatchHub(users, matchId);
+    var fakeIds = [];
+    for (var i = 0; i < users.length; i++)
+        fakeIds.push(Math.floor(Math.random() * 100000));
+    var ins = new MatchHub(users, matchId, fakeIds);
     global.Matches.set(matchId.toString(), ins);
 
     console.log(DEDICATED_PORT);
     res.status(STATUS_OK).send(JSON.stringify({
         port: DEDICATED_PORT.toString(),
         pmid: PMID,
-        matchId: matchId
+        matchId: matchId,
+        fakeId: fakeIds
     }));
 });
 
@@ -143,7 +146,6 @@ getPort({ port: Array.from(Array(100), (val, key) => key + 1024 + (100 * PMID)) 
             //TODO: Handle The Error
         });
 
-
         socket.write(`${DEDICATED_PORT}\r\n`);
 
         DEBUG.d({
@@ -163,6 +165,7 @@ getPort({ port: Array.from(Array(100), (val, key) => key + 1024 + (100 * PMID)) 
     //#region Dedicated TCP Server 
     var dedicatedServer = net.createServer(function (socket) {
         socket.setNoDelay(true);
+        var status = true;
         DEBUG.d({
             IP: socket.remoteAddress,
             Port: socket.remotePort
@@ -193,17 +196,27 @@ getPort({ port: Array.from(Array(100), (val, key) => key + 1024 + (100 * PMID)) 
         });
 
         socket.on('data', function (data) {
-            data = JSON.parse(data);
-            var request = data;
+            if (status) {
+                try {
+                    data = JSON.parse(data);
+                    var request = data;
 
-            DEBUG.d({
-                IP: socket.remoteAddress,
-                Port: socket.remotePort,
-                Type: request["_type"],
-                Info: request["_info"]
-            }, 'Requests', 'TCP', 'Data');
+                    DEBUG.d({
+                        IP: socket.remoteAddress,
+                        Port: socket.remotePort,
+                        Type: request["_type"],
+                        Info: request["_info"]
+                    }, 'Requests', 'TCP', 'Data');
 
-            eval(request["_type"])(request["_info"], socket);
+                    if (request["_type"] == "MatchController.tcpHandshake")
+                        status = false;
+
+                    eval(request["_type"])(request["_info"], socket);
+                } catch (err) {
+                    console.log("Invalid Operation");
+                }
+            }
+
         });
     });
 
@@ -234,10 +247,10 @@ getPort({ port: Array.from(Array(100), (val, key) => key + 1024 + (100 * PMID)) 
             Data: message
         }, 'Requests', 'UDP', 'Data');
 
-        if (msg.indexOf("{") == 0) {
+        try {
             var request = JSON.parse(message);
             eval(request["_type"])(request["_info"], rinfo);
-        } else {
+        } catch (err) {
             MatchController.route(message, rinfo.address + ":" + rinfo.port.toString());
         }
     });

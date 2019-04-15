@@ -23,7 +23,7 @@ Player.new = function (info, socket) {
                     status: registerState,
                     userId: newUserId.toString()
                 }
-            }));
+            }) + "\n");
         }
     });
 };
@@ -55,7 +55,7 @@ Player.get = function (info, socket) {
                 status: getState,
                 user: JSON.stringify(user)
             }
-        }));
+        }) + "\n");
     });
 };
 

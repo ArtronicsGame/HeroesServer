@@ -1,5 +1,3 @@
-const User = require('../Models/User.js');
-const MongoDB = require('../MongoDB.js');
 const DEBUG = require('../DEBUG.js')
 const Player = module.exports = {};
 
@@ -38,8 +36,12 @@ Player.get = function (info, socket) {
 
         global.RedisDB.hset(info["_id"], "Trophies", user.trophies);
         global.RedisDB.hset(info["_id"], "CurrentHero", user.currentHero);
-        global.RedisDB.hset(info["_id"], "PM_ID", PMID);
-        global.OnlinePlayers.set(info["_id"], { socket: socket, data: user, match: null });
+        global.RedisDB.hset(info["_id"], "Port", DEDICATED_PORT);
+        global.OnlinePlayers.set(info["_id"], {
+            socket: socket,
+            data: user,
+            match: null
+        });
         global.SocketIds.set(socket, info["_id"]);
 
         DEBUG.d({
@@ -62,5 +64,3 @@ Player.get = function (info, socket) {
 Player.unlock = function (info, socket) {
 
 }
-
-

@@ -8,7 +8,14 @@ const MessageModel = Mongoose.model('Message', Message);
 const ClanDB = module.exports = {};
 
 ClanDB.get = function (clanId, callback) {
-    Clan.findOne({ _id: clanId }).populate({ path: 'clanMembers', populate: { path: 'clanMembers' } }).exec(function (err, clan) {
+    Clan.findOne({
+        _id: clanId
+    }).populate({
+        path: 'clanMembers',
+        populate: {
+            path: 'clanMembers'
+        }
+    }).exec(function (err, clan) {
         if (err) {
             console.log(err);
             callback(STATUS_FAILED)
@@ -23,7 +30,7 @@ ClanDB.get = function (clanId, callback) {
     });
 };
 
-ClanDB.updateTrphies = function (clanId, callback) {
+ClanDB.updateTrophies = function (clanId, callback) {
     ClanDB.get(clanId, function (status, clan) {
         if (status != STATUS_OK) {
             callback(STATUS_FAILED);
@@ -43,9 +50,9 @@ ClanDB.updateTrphies = function (clanId, callback) {
             if (i / 10 == 0)
                 newTrophies += trophies[i];
             else if (i / 10 == 1)
-                newTrophies += 0.75 * trophies[i];
-            else
-                newTrophies += 0.5 * trophies[i];
+            newTrophies += 0.75 * trophies[i];
+        else
+            newTrophies += 0.5 * trophies[i];
         clan.trophies = newTrophies;
         clan.save(function (err, res) {
             if (err) {
@@ -79,8 +86,19 @@ ClanDB.join = function (userId, clanId, callback) {
                 return;
             }
 
-            const userPromise = User.findOneAndUpdate({ _id: userId }, { clan: clanId, playerClanPosition: "Member" });
-            const clanPromise = Clan.findOneAndUpdate({ _id: clanId }, { $addToSet: { clanMembers: userId } });
+            const userPromise = User.findOneAndUpdate({
+                _id: userId
+            }, {
+                clan: clanId,
+                playerClanPosition: "Member"
+            });
+            const clanPromise = Clan.findOneAndUpdate({
+                _id: clanId
+            }, {
+                $addToSet: {
+                    clanMembers: userId
+                }
+            });
 
             Promise.all([userPromise, clanPromise])
                 .then((result) => {
@@ -123,7 +141,11 @@ ClanDB.new = function (clanName, leaderId, callback) {
             return;
         }
 
-        Clan.create({ name: clanName, clanMembers: [leaderId], leader: leaderId }, function (err, clan) {
+        Clan.create({
+            name: clanName,
+            clanMembers: [leaderId],
+            leader: leaderId
+        }, function (err, clan) {
             if (err) {
                 console.log(err.message);
                 callback(STATUS_FAILED, err.message);
@@ -161,7 +183,15 @@ ClanDB.new = function (clanName, leaderId, callback) {
 };
 
 ClanDB.search = function (clanName, callback) {
-    Clan.find({ name: { "$regex": clanName, "$options": "i" } }).sort({ trophies: -1, name: 1 }).limit(100).exec(function (err, docs) {
+    Clan.find({
+        name: {
+            "$regex": clanName,
+            "$options": "i"
+        }
+    }).sort({
+        trophies: -1,
+        name: 1
+    }).limit(100).exec(function (err, docs) {
         if (err) {
             console.log(err);
             return;
@@ -236,9 +266,21 @@ ClanDB.promote = function (promoterUserId, userId, callback) {
                     });
                 });
             } else if (promoterUser.playerClanPosition == "Leader" && user.playerClanPosition == "Co-Leader") {
-                var promotePromise = User.findOneAndUpdate({ _id: userId }, { playerClanPosition: "Leader" });
-                var demotePromise = User.findOneAndUpdate({ _id: user.clan.leader }, { playerClanPosition: "Co-Leader" });
-                var clanPromise = Clan.findOneAndUpdate({ _id: user.clan }, { leader: userId });
+                var promotePromise = User.findOneAndUpdate({
+                    _id: userId
+                }, {
+                    playerClanPosition: "Leader"
+                });
+                var demotePromise = User.findOneAndUpdate({
+                    _id: user.clan.leader
+                }, {
+                    playerClanPosition: "Co-Leader"
+                });
+                var clanPromise = Clan.findOneAndUpdate({
+                    _id: user.clan
+                }, {
+                    leader: userId
+                });
 
                 Promise.all([promotePromise, demotePromise, clanPromise])
                     .then((result) => {
@@ -342,9 +384,23 @@ ClanDB.kick = function (kickerUserId, userId, callback) {
             if ((kickerUser.playerClanPosition == "Leader" && (user.playerClanPosition == "Co-Leader" || user.playerClanPosition == "Member")) ||
                 (kickerUser.playerClanPosition == "Co-Leader" && user.playerClanPosition == "Member")) {
 
-                var clanPositionPromise = User.findOneAndUpdate({ _id: userId }, { playerClanPosition: "None" });
-                var userclanPromise = User.findOneAndUpdate({ _id: userId }, { clan: null });
-                var clanPromise = Clan.findOneAndUpdate({ _id: user.clan }, { $pull: { clanMembers: user._id } });
+                var clanPositionPromise = User.findOneAndUpdate({
+                    _id: userId
+                }, {
+                    playerClanPosition: "None"
+                });
+                var userclanPromise = User.findOneAndUpdate({
+                    _id: userId
+                }, {
+                    clan: null
+                });
+                var clanPromise = Clan.findOneAndUpdate({
+                    _id: user.clan
+                }, {
+                    $pull: {
+                        clanMembers: user._id
+                    }
+                });
 
                 Promise.all([clanPositionPromise, userclanPromise, clanPromise])
                     .then((result) => {
@@ -390,9 +446,23 @@ ClanDB.leave = function (userId, callback) {
         }
 
         var clan = user.clan;
-        var clanPositionPromise = User.findOneAndUpdate({ _id: userId }, { playerClanPosition: "None" });
-        var userclanPromise = User.findOneAndUpdate({ _id: userId }, { clan: null });
-        var clanPromise = Clan.findOneAndUpdate({ _id: clan._id }, { $pull: { clanMembers: user._id } });
+        var clanPositionPromise = User.findOneAndUpdate({
+            _id: userId
+        }, {
+            playerClanPosition: "None"
+        });
+        var userclanPromise = User.findOneAndUpdate({
+            _id: userId
+        }, {
+            clan: null
+        });
+        var clanPromise = Clan.findOneAndUpdate({
+            _id: clan._id
+        }, {
+            $pull: {
+                clanMembers: user._id
+            }
+        });
         Promise.all([clanPositionPromise, clanPromise, userclanPromise])
             .then((result) => {
                 var message = `${user.username} leave from clan`;

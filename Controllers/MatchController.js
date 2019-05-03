@@ -1,34 +1,19 @@
 const Match = module.exports = {};
-const MatchHub = require('../MatchHub.js');
-const DEBUG = require('../DEBUG.js')
-const UniId = require('uniqid');
 
-const RouteData = new Map();
+Match.result = function (info, socket) {
+    console.log("Here")
+    var cnt = info["Winners"].length;
+    var matchId = info["MatchID"];
+    var action = info["Actions"];
+    for (var i = 0; i < info["Winners"].length; i++) {
+        MongoDB.Users.addCoins(info["Winners"][i], 501, function (status, newCoin) {
+            if (--this.cnt == 0) {
+                socket.write("OK\r\n")
+            }
+        }.bind({
+            counter: cnt
+        }));
+    }
 
-Match.updatePos = function (info, rinfo) {
-    //TODO: Implement Moving By UDP Connection
-};
-
-Match.action = function (info, socket) {
-    //TODO: Implement Actions By TCP Connection
+    MongoDB.Match.result(matchId, action);
 }
-
-Match.tcpHandshake = function (info, socket) {
-    var matchId = info['matchId'];
-    var id = info['id'];
-
-    global.Matches.get(matchId.toString()).tcpHandshake(id, socket);
-}
-
-Match.udpHandshake = function (info, rinfo) {
-    var matchId = info['matchId'];
-    var id = info['id'];
-    RouteData.set(rinfo.address + ":" + rinfo.port.toString(), matchId.toString());
-    global.Matches.get(matchId.toString()).udpHandshake(id, rinfo);
-}
-
-Match.route = function (data, rdata) {
-    var id = RouteData.get(rdata);
-    global.Matches.get(id).onPacket(data);
-}
-

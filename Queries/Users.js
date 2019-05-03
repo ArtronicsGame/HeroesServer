@@ -8,7 +8,9 @@ const MessageModel = Mongoose.model('Message', Message);
 const UserDB = module.exports = {};
 
 UserDB.new = function (username, callback) {
-    User.create({ username: username }, function (err, res) {
+    User.create({
+        username: username
+    }, function (err, res) {
         if (err) {
             console.log(err.message);
             if (err.message.includes("duplicate"))
@@ -22,7 +24,9 @@ UserDB.new = function (username, callback) {
 };
 
 UserDB.get = function (userId, callback) {
-    User.findOne({ _id: userId }).populate('clan').exec(function (err, res) {
+    User.findOne({
+        _id: userId
+    }).populate('clan').exec(function (err, res) {
         if (err) {
             console.log(err.message);
             callback(STATUS_FAILED);
@@ -257,4 +261,10 @@ UserDB.changeHero = function (userId, hero, callback) {
             callback(STATUS_OK);
         });
     });
+}
+
+UserDB.joinMatch = function (userId, matchId) {
+    User.findByIdAndUpdate(userId, {
+        matchId: matchId
+    }).exec();
 }

@@ -33,7 +33,7 @@
     "ioredis": "^4.6.2",
     "mongoose": "^5.2.15",
     "mongoose-simple-random": "^0.4.1",
-    "nodemailer": "^4.6.8",
+    "nodemailer": "^6.4.16",
     "path": "^0.12.7",
     "priorityqueue": "^0.2.1",
     "sendmail": "^1.4.1",

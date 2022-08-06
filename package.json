@@ -31,7 +31,7 @@
     "express": "^4.16.4",
     "get-port": "^4.2.0",
     "ioredis": "^4.6.2",
-    "mongoose": "^5.2.15",
+    "mongoose": "^5.7.5",
     "mongoose-simple-random": "^0.4.1",
     "nodemailer": "^4.6.8",
     "path": "^0.12.7",

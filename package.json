@@ -28,7 +28,7 @@
     "body-parser": "^1.18.3",
     "collisions": "^2.0.13",
     "dgram": "^1.0.1",
-    "express": "^4.16.4",
+    "express": "^4.17.3",
     "get-port": "^4.2.0",
     "ioredis": "^4.6.2",
     "mongoose": "^5.2.15",
